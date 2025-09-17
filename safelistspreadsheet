@@ -1,1 +1,33 @@
+# app.py
+import os
+from flask import Flask, jsonify, request
+
+app = Flask(__name__)
+
+@app.route("/")
+def root():
+    return jsonify(ok=True, service="Safelist License Server")
+
+@app.route("/api/health")
+def health():
+    return jsonify(ok=True, path="/api/health")
+
+@app.route("/api/issue", methods=["POST"])
+def issue():
+    data = request.get_json(force=True)
+    if data.get("secret") != os.environ.get("SECRET_KEY"):
+        return jsonify(ok=False, error="secret mismatch"), 403
+    order_id = str(data.get("order_id","")).strip()
+    sku = str(data.get("product_sku","")).strip()
+    if not order_id or not sku:
+        return jsonify(ok=False, error="missing order_id or product_sku"), 400
+    key = f"SL-{order_id.replace('-', '')[:4]}-{sku.replace('-', '')[:4]}-TEST"
+    return jsonify(ok=True, key=key)
+
+@app.route("/api/validate", methods=["POST"])
+def validate():
+    data = request.get_json(force=True)
+    key = str(data.get("key","")).strip()
+    valid = key.startswith("SL-")
+    return jsonify(valid=valid)
 
